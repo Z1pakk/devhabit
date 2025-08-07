@@ -1,6 +1,8 @@
+using DevHabit.Api.DTOs.Common;
+
 namespace DevHabit.Api.DTOs.Tags;
 
-public sealed record TagDto
+public sealed record TagDto : ILinksResponse
 {
     public required string Id { get; set; }
 
@@ -11,4 +13,6 @@ public sealed record TagDto
     public required DateTime CreatedAtUtc { get; set; }
 
     public DateTime? UpdatedAtUtc { get; set; }
+
+    public IEnumerable<LinkDto> Links { get; set; }
 }

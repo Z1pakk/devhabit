@@ -12,7 +12,7 @@ public sealed record PaginationResult<T> : ICollectionResponse<T>, ILinksRespons
 
     public int TotalCount { get; init; }
 
-    public IEnumerable<LinkDto> Links { get; set; } = [];
+    public IEnumerable<LinkDto> Links { get; set; }
 
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
 

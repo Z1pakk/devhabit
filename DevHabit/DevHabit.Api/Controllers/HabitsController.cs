@@ -1,4 +1,5 @@
 using System.Dynamic;
+using System.Net.Mime;
 using Asp.Versioning;
 using DevHabit.Api.Database;
 using DevHabit.Api.DTOs.Common;
@@ -16,6 +17,14 @@ namespace DevHabit.Api.Controllers;
 [ApiController]
 [Route("habits")]
 [ApiVersion(1.0)]
+[Produces(
+    MediaTypeNames.Application.Json,
+    CustomMediaTypeNames.Application.JsonV1,
+    CustomMediaTypeNames.Application.JsonV2,
+    CustomMediaTypeNames.Application.HateoasJson,
+    CustomMediaTypeNames.Application.HateoasJsonV1,
+    CustomMediaTypeNames.Application.HateoasJsonV2
+)]
 public class HabitsController(ApplicationDbContext dbContext, LinkService linkService)
     : ControllerBase
 {
@@ -78,21 +87,20 @@ public class HabitsController(ApplicationDbContext dbContext, LinkService linkSe
             .Take(queryParams.PageSize)
             .ToListAsync();
 
-        bool isLinksIncluded =
-            queryParams.AcceptHeader == CustomMediaTypeNames.Application.HateoasJson;
-
         var paginationResult = new PaginationResult<ExpandoObject>()
         {
             Items = dataShapingService.ShapeCollectionData(
                 habits,
                 queryParams.Fields,
-                isLinksIncluded ? h => CreateLinksForHabit(h.Id, queryParams.Fields) : null
+                queryParams.IsLinksIncluded
+                    ? h => CreateLinksForHabit(h.Id, queryParams.Fields)
+                    : null
             ),
             Page = queryParams.Page,
             PageSize = queryParams.PageSize,
             TotalCount = totalCount,
         };
-        if (isLinksIncluded)
+        if (queryParams.IsLinksIncluded)
         {
             paginationResult.Links = CreateLinksForHabits(
                 queryParams,
@@ -109,15 +117,14 @@ public class HabitsController(ApplicationDbContext dbContext, LinkService linkSe
     [ApiVersion(1.0)]
     public async Task<IActionResult> GetHabit(
         [FromRoute] string id,
-        [FromQuery] string? fields,
-        [FromHeader(Name = "Accept")] string acceptHeader,
+        [FromQuery] HabitsQueryParameters queryParams,
         [FromServices] DataShapingService dataShapingService
     )
     {
-        if (!dataShapingService.Validate<HabitWithTagsDto>(fields))
+        if (!dataShapingService.Validate<HabitWithTagsDto>(queryParams.Fields))
         {
             return Problem(
-                detail: $"The fields parameter is invalid: {fields}",
+                detail: $"The fields parameter is invalid: {queryParams.Fields}",
                 statusCode: StatusCodes.Status400BadRequest
             );
         }
@@ -131,12 +138,11 @@ public class HabitsController(ApplicationDbContext dbContext, LinkService linkSe
             return NotFound();
         }
 
-        ExpandoObject shapedHabitDto = dataShapingService.ShapeData(habitDto, fields);
+        ExpandoObject shapedHabitDto = dataShapingService.ShapeData(habitDto, queryParams.Fields);
 
-        bool isLinksIncluded = acceptHeader == CustomMediaTypeNames.Application.HateoasJson;
-        if (isLinksIncluded)
+        if (queryParams.IsLinksIncluded)
         {
-            IEnumerable<LinkDto> links = CreateLinksForHabit(id, fields);
+            IEnumerable<LinkDto> links = CreateLinksForHabit(id, queryParams.Fields);
 
             shapedHabitDto.TryAdd("links", links);
         }
