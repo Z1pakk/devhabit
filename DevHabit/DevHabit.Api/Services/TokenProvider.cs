@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using DevHabit.Api.DTOs.Auth;
 using DevHabit.Api.Settings;
@@ -16,8 +17,11 @@ public sealed class TokenProvider(IOptions<JwtAuthOptions> options)
     {
         string accessToken = GenerateAccessToken(request);
         string refreshToken = GenerateRefreshToken();
+        DateTime refreshTokenExpiry = DateTime.UtcNow.AddDays(
+            _options.RefreshTokenExpirationInDays
+        );
 
-        return new AccessTokenDto(accessToken, refreshToken);
+        return new AccessTokenDto(accessToken, refreshToken, refreshTokenExpiry);
     }
 
     private string GenerateAccessToken(TokenRequest request)
@@ -46,6 +50,7 @@ public sealed class TokenProvider(IOptions<JwtAuthOptions> options)
 
     private string GenerateRefreshToken()
     {
-        return string.Empty;
+        byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(randomBytes);
     }
 }

@@ -3,6 +3,7 @@ using DevHabit.Api.DTOs.Auth;
 using DevHabit.Api.DTOs.Users;
 using DevHabit.Api.Entities;
 using DevHabit.Api.Services;
+using DevHabit.Api.Settings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -61,11 +62,22 @@ public sealed class AuthController(
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync();
 
-        await transaction.CommitAsync();
-
         AccessTokenDto accessTokens = tokenProvider.Create(
             new TokenRequest(identityUser.Id, identityUser.Email)
         );
+
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = identityUser.Id,
+            Token = accessTokens.RefreshToken,
+            ExpiresAtUtc = accessTokens.RefreshTokenExpiration,
+        };
+
+        identityDbContext.RefreshTokens.Add(refreshToken);
+        await identityDbContext.SaveChangesAsync();
+
+        await transaction.CommitAsync();
 
         return Ok(accessTokens);
     }
@@ -97,6 +109,55 @@ public sealed class AuthController(
         AccessTokenDto accessTokens = tokenProvider.Create(
             new TokenRequest(identityUser.Id, identityUser.Email!)
         );
+
+        var refreshToken = new RefreshToken
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = identityUser.Id,
+            Token = accessTokens.RefreshToken,
+            ExpiresAtUtc = accessTokens.RefreshTokenExpiration,
+        };
+
+        identityDbContext.RefreshTokens.Add(refreshToken);
+        await identityDbContext.SaveChangesAsync();
+
+        return Ok(accessTokens);
+    }
+
+    [HttpPost]
+    [Route("refresh")]
+    public async Task<ActionResult<AccessTokenDto>> Refresh(
+        [FromBody] RefreshTokenDto refreshTokenRequest
+    )
+    {
+        RefreshToken? refreshToken = await identityDbContext
+            .RefreshTokens.AsNoTracking()
+            .FirstOrDefaultAsync(rt => rt.Token == refreshTokenRequest.RefreshToken);
+
+        if (refreshToken is null || refreshToken.ExpiresAtUtc < DateTime.UtcNow)
+        {
+            return Problem(
+                detail: "Invalid or expired refresh token",
+                statusCode: StatusCodes.Status401Unauthorized
+            );
+        }
+
+        IdentityUser? identityUser = await userManager.FindByIdAsync(refreshToken.UserId);
+        if (identityUser is null)
+        {
+            return Problem(detail: "User not found", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        AccessTokenDto accessTokens = tokenProvider.Create(
+            new TokenRequest(identityUser.Id, identityUser.Email!)
+        );
+
+        // Update the existing refresh token
+        refreshToken.Token = accessTokens.RefreshToken;
+        refreshToken.ExpiresAtUtc = accessTokens.RefreshTokenExpiration;
+
+        identityDbContext.RefreshTokens.Update(refreshToken);
+        await identityDbContext.SaveChangesAsync();
 
         return Ok(accessTokens);
     }
