@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-          cache: true
           
       - name: Set up dependency caching
         uses: actions/cache@v5
