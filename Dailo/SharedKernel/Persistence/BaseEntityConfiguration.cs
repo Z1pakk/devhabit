@@ -18,7 +18,7 @@ public abstract class BaseEntityConfiguration<TEntity> : IEntityTypeConfiguratio
 
         builder.Property(b => b.IsDeleted).HasDefaultValue(false);
 
-        builder.Property(b => b.Version).IsConcurrencyToken().ValueGeneratedOnAddOrUpdate();
+        builder.Property(b => b.Version).IsConcurrencyToken();
 
         builder.HasIndex(b => b.CreatedAtUtc);
 
@@ -49,7 +49,7 @@ public abstract class BaseEntityTypedConfiguration<TEntity> : IEntityTypeConfigu
 
         builder.Property(b => b.IsDeleted).HasDefaultValue(false);
 
-        builder.Property(b => b.Version).IsConcurrencyToken().ValueGeneratedOnAddOrUpdate();
+        builder.Property(b => b.Version).IsConcurrencyToken();
 
         builder.HasIndex(b => b.CreatedAtUtc);
 

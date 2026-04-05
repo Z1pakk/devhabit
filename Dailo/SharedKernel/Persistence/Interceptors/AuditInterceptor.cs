@@ -34,7 +34,7 @@ public class AuditInterceptor(ICurrentUserService currentUserService, TimeProvid
             return;
         }
 
-        var now = dateTimeProvider.GetUtcNow().DateTime;
+        var now = dateTimeProvider.GetUtcNow().UtcDateTime;
         var userId = currentUserService.UserId;
 
         var entries = context

@@ -1,5 +1,4 @@
 using System.Reflection;
-using Habit.Application;
 
 namespace Habit.Api;
 

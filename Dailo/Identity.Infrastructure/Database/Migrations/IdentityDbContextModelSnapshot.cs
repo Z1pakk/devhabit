@@ -18,7 +18,7 @@ namespace Identity.Infrastructure.Database.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("identity")
-                .HasAnnotation("ProductVersion", "10.0.4")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -70,7 +70,6 @@ namespace Identity.Infrastructure.Database.Migrations
 
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("uuid")
                         .HasColumnName("version");
 
@@ -237,7 +236,6 @@ namespace Identity.Infrastructure.Database.Migrations
 
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("uuid")
                         .HasColumnName("version");
 
@@ -337,10 +335,13 @@ namespace Identity.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Identity.Domain.Entities.UserRole", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("id");
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -349,6 +350,11 @@ namespace Identity.Infrastructure.Database.Migrations
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("created_by_user_id");
+
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -364,25 +370,23 @@ namespace Identity.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("last_modified_by_user_id");
 
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("role_id");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
-
                     b.Property<Guid>("Version")
                         .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("uuid")
                         .HasColumnName("version");
 
-                    b.HasKey("Id")
+                    b.HasKey("UserId", "RoleId")
                         .HasName("pk_user_roles");
+
+                    b.HasAlternateKey("Id")
+                        .HasName("ak_user_roles_id");
 
                     b.HasIndex("CreatedAtUtc")
                         .HasDatabaseName("ix_user_roles_created_at_utc");
+
+                    b.HasIndex("Id")
+                        .IsUnique()
+                        .HasDatabaseName("ix_user_roles_id");
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("ix_user_roles_is_deleted")
@@ -390,9 +394,6 @@ namespace Identity.Infrastructure.Database.Migrations
 
                     b.HasIndex("RoleId")
                         .HasDatabaseName("ix_user_roles_role_id");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_user_roles_user_id");
 
                     b.ToTable("user_roles", "identity");
                 });

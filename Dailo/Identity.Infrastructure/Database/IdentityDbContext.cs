@@ -1,6 +1,8 @@
+using System.Data;
 using Identity.Application.Persistence;
 using Identity.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using SharedKernel.Persistence.Conventions;
 using SharedKernel.Persistence.Extensions;
 using SharedKernel.Persistence.Interceptors;
@@ -25,7 +27,7 @@ public sealed class IdentityDbContext(
     >(options),
         IIdentityDbContext
 {
-    public string Schema => IdentitySchema.NAME;
+    public string Schema => IdentitySchema.Name;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -59,4 +61,62 @@ public sealed class IdentityDbContext(
         configurationBuilder.Conventions.Add(_ => new DefaultStringLengthConvention());
         configurationBuilder.Conventions.Add(_ => new SoftDeleteConvention());
     }
+
+    public async Task ExecuteTransactionalAsync(
+        Func<Task> action,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var strategy = CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken
+            );
+            try
+            {
+                await action();
+
+                await SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
+
+    public Task<T> ExecuteTransactionalAsync<T>(
+        Func<Task<T>> action,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var strategy = CreateExecutionStrategy();
+        return strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken
+            );
+            try
+            {
+                var result = await action();
+
+                await SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return result;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
+
+    private IExecutionStrategy CreateExecutionStrategy() => Database.CreateExecutionStrategy();
 }

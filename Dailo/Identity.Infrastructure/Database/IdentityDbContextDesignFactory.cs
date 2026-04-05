@@ -37,7 +37,7 @@ internal sealed class IdentityDbContextDesignFactory
                     b.MigrationsAssembly(AssemblyReference.Assembly.GetName().Name)
                         .MigrationsHistoryTable(
                             HistoryRepository.DefaultTableName,
-                            IdentitySchema.NAME
+                            IdentitySchema.Name
                         )
             )
             .UseSnakeCaseNamingConvention();

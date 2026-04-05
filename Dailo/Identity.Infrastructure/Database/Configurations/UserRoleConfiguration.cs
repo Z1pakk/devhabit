@@ -11,5 +11,14 @@ internal sealed class UserRoleConfiguration : BaseEntityConfiguration<UserRole>
     protected override void ConfigureEntity(EntityTypeBuilder<UserRole> builder)
     {
         builder.ToTable(nameof(UserRole).Pluralize(false));
+
+        // ASP.NET Identity's UserManager uses FindAsync(userId, roleId) internally,
+        // so the composite key must remain the primary key.
+        builder.HasKey(ur => new { ur.UserId, ur.RoleId });
+
+        // Id becomes a surrogate auto-generated alternate key.
+        builder.Property(ur => ur.Id).ValueGeneratedOnAdd();
+        builder.HasAlternateKey(ur => ur.Id);
+        builder.HasIndex(ur => ur.Id).IsUnique();
     }
 }

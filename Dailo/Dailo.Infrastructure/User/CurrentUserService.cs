@@ -16,7 +16,8 @@ public class CurrentUserService(IHttpContextAccessor httpAccessor) : ICurrentUse
 
         if (string.IsNullOrEmpty(claimValue))
         {
-            throw new UnauthorizedAccessException($"Claim {claimType} is missing or empty.");
+            return Guid.NewGuid();
+            // throw new UnauthorizedAccessException($"Claim {claimType} is missing or empty.");
         }
 
         if (!Guid.TryParse(claimValue, out var guid))

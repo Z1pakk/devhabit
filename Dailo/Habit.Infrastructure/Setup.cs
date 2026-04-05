@@ -1,12 +1,12 @@
 using Habit.Api;
 using Habit.Application;
-using Habit.Application.Features.CreateHabit;
 using Habit.Application.Persistence;
 using Habit.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SharedKernel.CQRS;
 using SharedKernel.Endpoint;
 
 namespace Habit.Infrastructure;
@@ -26,21 +26,29 @@ public static class Setup
             opt.UseNpgsql(
                     connectionString,
                     b =>
+                    {
                         b.MigrationsAssembly(AssemblyReference.Assembly)
                             .MigrationsHistoryTable(
                                 HistoryRepository.DefaultTableName,
                                 HabitSchema.NAME
-                            )
+                            );
+                        // Enable retry on failure for transient errors
+                        b.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorCodesToAdd: null
+                        );
+
+                        // Set command timeout for long-running queries
+                        b.CommandTimeout(60);
+                    }
                 )
                 .UseSnakeCaseNamingConvention()
         );
 
         services.AddEndpoints(assemblies: HabitApiRoot.Assembly);
 
-        services.AddMediator(opt =>
-        {
-            opt.Assemblies = [typeof(IHabitApplicationRoot).Assembly];
-        });
+        services.AddHandlerAssembly<IHabitApplicationRoot>();
 
         return services;
     }

@@ -7,28 +7,32 @@ using SharedKernel.Endpoint;
 
 namespace Habit.Api.Endpoints.CreateHabit;
 
-public sealed record CreateHabitRequest(string Name, string Description);
-
 public sealed record CreateHabitResponse(Guid Id);
 
-public sealed class CreateHabit(ISender sender) : IEndpoint<CreateHabitRequest, IResult>
+public sealed class CreateHabit : IEndpoint<CreateHabitCommand, IResult>
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/habits", async (CreateHabitRequest payload) => await HandleAsync(payload))
+        app.MapPost(
+                "/habits",
+                async (
+                    CreateHabitCommand payload,
+                    ISender sender,
+                    CancellationToken cancellationToken
+                ) => await HandleAsync(payload, sender, cancellationToken)
+            )
             .Produces<CreateHabitResponse>(StatusCodes.Status201Created)
             .WithTags(nameof(Habit))
             .WithName("Create Basket");
     }
 
     public async Task<IResult> HandleAsync(
-        CreateHabitRequest request,
+        CreateHabitCommand request,
+        ISender sender,
         CancellationToken cancellationToken = default
     )
     {
-        var command = new CreateHabitCommand(request.Name, request.Description);
-
-        var commandResult = await sender.Send(command, cancellationToken);
+        var commandResult = await sender.Send(request, cancellationToken);
         if (commandResult.IsFailure)
         {
             return commandResult.ToTypedHttpResult();

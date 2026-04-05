@@ -1,3 +1,6 @@
+using System.Reflection;
+using Dailo.Api.Extensions;
+using Dailo.Infrastructure.Database;
 using Dailo.Infrastructure.User;
 using Habit.Infrastructure;
 using Identity.Infrastructure;
@@ -15,10 +18,17 @@ builder
     .AddTagModule(builder.Configuration)
     .AddIdentityModule(builder.Configuration);
 
+builder.Services.AddMediator(opt => opt.ServiceLifetime = ServiceLifetime.Scoped);
+
 builder.Services.AddProblemDetails();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+
+if (!builder.IsOpenApiExecution())
+{
+    builder.AddDatabaseSeeding();
+}
 
 var app = builder.Build();
 

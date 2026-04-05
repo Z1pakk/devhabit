@@ -15,7 +15,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateHabitRequest"
+                "$ref": "#/components/schemas/CreateHabitCommand"
               }
             }
           },
@@ -34,14 +34,69 @@
           }
         }
       }
+    },
+    "/api/register": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "operationId": "Register user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
-      "CreateHabitRequest": {
+      "AccessTokenModel": {
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "refreshTokenExpiration"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "refreshTokenExpiration": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateHabitCommand": {
         "required": [
           "name",
-          "description"
+          "description",
+          "type",
+          "frequency",
+          "target",
+          "endDate",
+          "milestone"
         ],
         "type": "object",
         "properties": {
@@ -50,6 +105,32 @@
           },
           "description": {
             "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/HabitType"
+          },
+          "frequency": {
+            "$ref": "#/components/schemas/Frequency"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          },
+          "endDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "milestone": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Milestone"
+              }
+            ]
           }
         }
       },
@@ -64,12 +145,120 @@
             "format": "uuid"
           }
         }
+      },
+      "Frequency": {
+        "required": [
+          "type",
+          "timesPerPeriod"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FrequencyType"
+          },
+          "timesPerPeriod": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "FrequencyType": {
+        "type": "integer"
+      },
+      "HabitType": {
+        "type": "integer"
+      },
+      "Milestone": {
+        "required": [
+          "target",
+          "current"
+        ],
+        "type": "object",
+        "properties": {
+          "target": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "current": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "RegisterUserCommand": {
+        "required": [
+          "email",
+          "password",
+          "firstName",
+          "lastName"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterUserResponse": {
+        "required": [
+          "accessTokens"
+        ],
+        "type": "object",
+        "properties": {
+          "accessTokens": {
+            "$ref": "#/components/schemas/AccessTokenModel"
+          }
+        }
+      },
+      "Target": {
+        "required": [
+          "value",
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
       }
     }
   },
   "tags": [
     {
       "name": "Habit"
+    },
+    {
+      "name": "Identity"
     }
   ]
 }
